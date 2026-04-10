@@ -9,6 +9,7 @@ CONFIG_SCRIPT="$SCRIPT_DIR/config.zsh"
 PYTHON_SCRIPT="$SCRIPT_DIR/generate_completion.py"
 COMPLETION_SCRIPT="$SCRIPT_DIR/completion.zsh"
 CONTEXT_SCRIPT="$SCRIPT_DIR/context.zsh"
+NL_MODE_SCRIPT="$SCRIPT_DIR/nl_mode.zsh"
 
 # Load config (sets defaults and reads ~/.config/open-cli-copilot/config)
 source "$CONFIG_SCRIPT"
@@ -44,6 +45,7 @@ cleanup() {
 # Set up trap to kill Python script when the last zsh session is closed
 trap cleanup EXIT
 
-# Load the completion and context scripts
+# Load the completion, context, and NL mode scripts
 source "$COMPLETION_SCRIPT"
 source "$CONTEXT_SCRIPT"
+source "$NL_MODE_SCRIPT"

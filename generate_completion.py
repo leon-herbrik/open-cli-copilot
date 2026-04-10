@@ -37,6 +37,10 @@ command and context, output ONLY the completed command on a single line. \
 No explanation, no markdown, no quotes. If the input is empty or you cannot \
 complete it, output nothing."""
 
+NL_SYSTEM_PROMPT = """\
+Translate this description into a single shell command. \
+Output only the command, no explanation, no markdown."""
+
 CONTEXT_HISTORY_DEPTH = int(os.environ.get(
     "CONTEXT_HISTORY_DEPTH", _config.get("CONTEXT_HISTORY_DEPTH", "10")
 ))
@@ -84,16 +88,16 @@ def parse_file(file_path):
     return current_prompt, prompt
 
 
-def call_ollama(prompt):
+def call_ollama(prompt, system=None, max_tokens=50):
     """Call Ollama /api/generate with streaming, return first line of output."""
     payload = json.dumps({
         "model": OLLAMA_MODEL,
-        "system": SYSTEM_PROMPT,
+        "system": system or SYSTEM_PROMPT,
         "prompt": prompt,
         "stream": True,
         "keep_alive": -1,
         "options": {
-            "num_predict": 50,
+            "num_predict": max_tokens,
             "stop": ["\n"],
             "temperature": 0.0,
             "num_ctx": 2048,
@@ -145,11 +149,34 @@ def serve_terminal_session(context_file_path, option_file_path):
             file.write(completion)
 
 
+def serve_nl_request(request_file_path, response_file_path):
+    """Handle a natural-language-to-command request."""
+    req_mtime = os.path.getmtime(request_file_path)
+    resp_mtime = os.path.getmtime(response_file_path)
+
+    if req_mtime <= resp_mtime:
+        return
+
+    with open(request_file_path, "r") as f:
+        query = f.read().strip()
+
+    if not query:
+        return
+
+    result = call_ollama(query, system=NL_SYSTEM_PROMPT, max_tokens=200)
+    if result:
+        with open(response_file_path, "w") as f:
+            f.write(result)
+
+
 def handle_tmp_files(directory):
     context_files = list(tmp_files_dir_path.glob("*.context*"))
-    if not context_files:
+    nl_request_files = list(tmp_files_dir_path.glob("*.nl_request*"))
+
+    if not context_files and not nl_request_files:
         sys.exit(1)
 
+    # Handle inline completion requests
     for f in context_files:
         context_file_path = os.path.join(directory, f.name)
 
@@ -167,6 +194,21 @@ def handle_tmp_files(directory):
         except Exception as e:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             sys.stderr.write(f"{timestamp} \t ERROR: {str(e)}\n")
+
+    # Handle NL-to-command requests
+    for f in nl_request_files:
+        request_path = os.path.join(directory, f.name)
+        response_name = f.name.replace(".nl_request", ".nl_response")
+        response_path = os.path.join(directory, response_name)
+
+        if not os.path.exists(response_path):
+            continue
+
+        try:
+            serve_nl_request(request_path, response_path)
+        except Exception as e:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sys.stderr.write(f"{timestamp} \t NL ERROR: {str(e)}\n")
 
 
 def watch_files():
