@@ -10,11 +10,26 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TMP_FILES_DIR = os.path.join(SCRIPT_DIR, ".tmp")
 tmp_files_dir_path = Path(TMP_FILES_DIR)
 
-MIN_IDLE_TIME = 0.3
 CHECK_INTERVAL = 0.1
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:4b")
+def load_config():
+    """Load config from ~/.config/open-cli-copilot/config, return as dict."""
+    config = {}
+    config_path = Path.home() / ".config" / "open-cli-copilot" / "config"
+    if config_path.exists():
+        for line in config_path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, value = line.split("=", 1)
+                config[key.strip()] = value.strip()
+    return config
+
+_config = load_config()
+OLLAMA_URL = os.environ.get("OLLAMA_URL", _config.get("OLLAMA_URL", "http://localhost:11434"))
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", _config.get("OLLAMA_MODEL", "qwen3:4b"))
+MIN_IDLE_TIME = int(os.environ.get("INLINE_TIMEOUT_MS", _config.get("INLINE_TIMEOUT_MS", "300"))) / 1000
 
 SYSTEM_PROMPT = """\
 You are a shell command autocomplete engine. Given the user's current partial \

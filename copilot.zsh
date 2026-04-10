@@ -5,9 +5,13 @@ SCRIPT_DIR=${0:a:h}
 # Get the process ID of the current terminal session
 pid=$$
 
+CONFIG_SCRIPT="$SCRIPT_DIR/config.zsh"
 PYTHON_SCRIPT="$SCRIPT_DIR/generate_completion.py"
 COMPLETION_SCRIPT="$SCRIPT_DIR/completion.zsh"
 CONTEXT_SCRIPT="$SCRIPT_DIR/context.zsh"
+
+# Load config (sets defaults and reads ~/.config/open-cli-copilot/config)
+source "$CONFIG_SCRIPT"
 
 LOG_FILE="$SCRIPT_DIR/error.log"
 
