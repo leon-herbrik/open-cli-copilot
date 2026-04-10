@@ -27,7 +27,7 @@ fi
 
 # Warm the Ollama model in the background so first completion is fast
 (curl -s -o /dev/null "${OLLAMA_URL:-http://localhost:11434}/api/generate" \
-    -d '{"model":"'"${OLLAMA_MODEL:-qwen3:4b}"'","prompt":"","keep_alive":-1}' &) 2>/dev/null
+    -d '{"model":"'"${OLLAMA_MODEL:-qwen3.5:4b}"'","prompt":"","think":false,"keep_alive":-1}' &) 2>/dev/null
 
 cleanup() {
     # Check if there are no other zsh sessions open
