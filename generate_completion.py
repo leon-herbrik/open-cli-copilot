@@ -1,58 +1,97 @@
 import os
 import sys
 import time
+import json
+import urllib.request
 from pathlib import Path
 from datetime import datetime
 
-import google.generativeai as genai
-
-
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Directory to store temporary files, used to communicate with the terminal
 TMP_FILES_DIR = os.path.join(SCRIPT_DIR, ".tmp")
 tmp_files_dir_path = Path(TMP_FILES_DIR)
 
 MIN_IDLE_TIME = 0.3
 CHECK_INTERVAL = 0.1
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-model = genai.GenerativeModel("gemini-1.5-flash")
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:4b")
 
-prompt_template = """
-You are command line copilot.
-Propose how current prompt should be completed, return completed command line prompt alone with no explanation.
-For example, if the current prompt is "ls", you can return "ls -l" or "ls -a" or "ls -l -a" etc.
+SYSTEM_PROMPT = """\
+You are a shell command autocomplete engine. Given the user's current partial \
+command and context, output ONLY the completed command on a single line. \
+No explanation, no markdown, no quotes. If the input is empty or you cannot \
+complete it, output nothing."""
 
-To better contextualize you, here are some useful information:
-
-Last commands entered:
+prompt_template = """\
+Last commands:
 {command_history}
-
-Current directory: {current_directory}
-
-Output of the "ls -p" command:
-{ls_output}
-
-Current prompt: {current_prompt}
-"""
+Directory: {current_directory}
+Files: {ls_output}
+Complete this: {current_prompt}"""
 
 
 def parse_file(file_path):
     with open(file_path, "r") as file:
         lines = file.readlines()
 
-    current_prompt = lines[0].strip()
-    current_directory = lines[1].strip()
-    command_history = "".join(lines[3:18])
-    ls_output = "".join(lines[18:])
+    if not lines:
+        return None, None
 
-    return prompt_template.format(
+    current_prompt = lines[0].strip()
+    if not current_prompt:
+        return None, None
+
+    current_directory = lines[1].strip() if len(lines) > 1 else ""
+    command_history = "".join(lines[3:18]).strip()
+    ls_output = "".join(lines[18:]).strip()
+
+    prompt = prompt_template.format(
         command_history=command_history,
         ls_output=ls_output,
         current_directory=current_directory,
         current_prompt=current_prompt,
     )
+    return current_prompt, prompt
+
+
+def call_ollama(prompt):
+    """Call Ollama /api/generate with streaming, return first line of output."""
+    payload = json.dumps({
+        "model": OLLAMA_MODEL,
+        "system": SYSTEM_PROMPT,
+        "prompt": prompt,
+        "stream": True,
+        "keep_alive": -1,
+        "options": {
+            "num_predict": 50,
+            "stop": ["\n"],
+            "temperature": 0.0,
+            "num_ctx": 2048,
+        },
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        f"{OLLAMA_URL}/api/generate",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+
+    result = []
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            for line in resp:
+                chunk = json.loads(line)
+                token = chunk.get("response", "")
+                if "\n" in token:
+                    result.append(token.split("\n")[0])
+                    break
+                result.append(token)
+                if chunk.get("done", False):
+                    break
+    except Exception:
+        return None
+
+    return "".join(result).strip()
 
 
 def serve_terminal_session(context_file_path, option_file_path):
@@ -63,14 +102,14 @@ def serve_terminal_session(context_file_path, option_file_path):
         context_modification_time >= options_modification_time
         and (time.time() - context_modification_time) > MIN_IDLE_TIME
     ):
-        prompt = parse_file(context_file_path)
+        current_prompt, prompt = parse_file(context_file_path)
 
         if not prompt:
             return
 
-        chat = model.start_chat(history=[])
-        response = chat.send_message(prompt)
-        completion = response.text.strip()
+        completion = call_ollama(prompt)
+        if not completion:
+            return
 
         with open(option_file_path, "w") as file:
             file.write(completion)
@@ -84,10 +123,14 @@ def handle_tmp_files(directory):
     for f in context_files:
         context_file_path = os.path.join(directory, f.name)
 
+        option_file_path = None
         for option_f in tmp_files_dir_path.glob(
             f.name.replace(".context", ".options")[:-6] + "*"
         ):
             option_file_path = os.path.join(directory, option_f)
+
+        if not option_file_path:
+            continue
 
         try:
             serve_terminal_session(context_file_path, option_file_path)

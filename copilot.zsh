@@ -2,7 +2,7 @@
 
 # Get the directory of the script
 SCRIPT_DIR=${0:a:h}
-# Get the process ID of the current terminal sessions
+# Get the process ID of the current terminal session
 pid=$$
 
 PYTHON_SCRIPT="$SCRIPT_DIR/generate_completion.py"
@@ -16,9 +16,13 @@ CONTEXT_FILE=$(mktemp "$SCRIPT_DIR/.tmp/.context_${pid}_XXXXXX")
 
 # Check if the Python script is already running
 if ! pgrep -f "$PYTHON_SCRIPT" > /dev/null; then
-    # Start the Python script in the background if it is not running
-    $(nohup $SCRIPT_DIR/venv/bin/python "$PYTHON_SCRIPT" >/dev/null 2>>"$LOG_FILE" &)
+    # Start the Python daemon (no venv needed — stdlib only)
+    $(nohup python3 "$PYTHON_SCRIPT" >/dev/null 2>>"$LOG_FILE" &)
 fi
+
+# Warm the Ollama model in the background so first completion is fast
+(curl -s -o /dev/null "${OLLAMA_URL:-http://localhost:11434}/api/generate" \
+    -d '{"model":"'"${OLLAMA_MODEL:-qwen3:4b}"'","prompt":"","keep_alive":-1}' &) 2>/dev/null
 
 cleanup() {
     # Check if there are no other zsh sessions open
@@ -32,7 +36,6 @@ cleanup() {
     rm -f "$OPTIONS_FILE"
     rm -f "$CONTEXT_FILE"
 }
-
 
 # Set up trap to kill Python script when the last zsh session is closed
 trap cleanup EXIT
