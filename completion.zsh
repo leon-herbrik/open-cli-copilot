@@ -46,6 +46,8 @@ _copilot_accept_correction() {
         CURSOR=${#BUFFER}
         POSTDISPLAY=""
         _copilot_correction=""
+        # Clear options file so stale correction doesn't re-appear
+        : > "$OPTIONS_FILE"
         zle -R
     fi
 }
