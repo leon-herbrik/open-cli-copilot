@@ -37,10 +37,14 @@ command and context, output ONLY the completed command on a single line. \
 No explanation, no markdown, no quotes. If the input is empty or you cannot \
 complete it, output nothing."""
 
+CONTEXT_HISTORY_DEPTH = int(os.environ.get(
+    "CONTEXT_HISTORY_DEPTH", _config.get("CONTEXT_HISTORY_DEPTH", "10")
+))
+
 prompt_template = """\
-Last commands:
-{command_history}
 Directory: {current_directory}
+{git_info}{exit_code}Last commands:
+{command_history}
 Files: {ls_output}
 Complete this: {current_prompt}"""
 
@@ -57,14 +61,25 @@ def parse_file(file_path):
         return None, None
 
     current_directory = lines[1].strip() if len(lines) > 1 else ""
-    command_history = "".join(lines[3:18]).strip()
-    ls_output = "".join(lines[18:]).strip()
+    exit_code = lines[2].strip() if len(lines) > 2 else "0"
+    git_info = lines[3].strip() if len(lines) > 3 else ""
+    # line 4 is env var names — available but kept brief, skip for inline prompt
+    # lines 5+ are history, then dir listing
+    history_start = 5
+    history_end = history_start + CONTEXT_HISTORY_DEPTH
+    command_history = "".join(lines[history_start:history_end]).strip()
+    ls_output = "".join(lines[history_end:]).strip()
+
+    git_str = f"Git: {git_info}\n" if git_info else ""
+    exit_str = f"Last exit code: {exit_code}\n" if exit_code != "0" else ""
 
     prompt = prompt_template.format(
         command_history=command_history,
         ls_output=ls_output,
         current_directory=current_directory,
         current_prompt=current_prompt,
+        git_info=git_str,
+        exit_code=exit_str,
     )
     return current_prompt, prompt
 
