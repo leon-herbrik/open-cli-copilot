@@ -1,7 +1,6 @@
 #!/bin/zsh
 
 CONTEXT_FILE=$(find "${SCRIPT_DIR}/.tmp/" -name ".context_${pid}_??????" | head -n 1)
-OS=$(uname)
 
 # Track last command's exit code
 _copilot_last_exit_code=0
@@ -42,11 +41,8 @@ update_context() {
 
 # Update only the buffer line (line 1) on each keystroke
 update_context_buffer() {
-    if [[ "$OS" == "Darwin" ]]; then
-        sed -i '' "1s|.*|$(_zsh_autosuggest_escape_command "${BUFFER:-}")|" "$CONTEXT_FILE"
-    else
-        sed -i "1s|.*|$(_zsh_autosuggest_escape_command "${BUFFER:-}")|" "$CONTEXT_FILE"
-    fi
+    local tmp="${CONTEXT_FILE}.tmp"
+    { print -r -- "${BUFFER:-}"; tail -n +2 "$CONTEXT_FILE"; } > "$tmp" && mv "$tmp" "$CONTEXT_FILE"
 }
 
 autoload -U add-zle-hook-widget
