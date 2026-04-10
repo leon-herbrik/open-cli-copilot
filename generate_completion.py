@@ -32,10 +32,11 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", _config.get("OLLAMA_MODEL", "qwen3
 MIN_IDLE_TIME = int(os.environ.get("INLINE_TIMEOUT_MS", _config.get("INLINE_TIMEOUT_MS", "300"))) / 1000
 
 SYSTEM_PROMPT = """\
-You are a shell command autocomplete engine. Given the user's current partial \
-command and context, output ONLY the completed command on a single line. \
-No explanation, no markdown, no quotes. If the input is empty or you cannot \
-complete it, output nothing."""
+You are a shell command autocomplete engine. \
+Given a partial command after "Complete this:", output the full completed command. \
+CRITICAL: Your output MUST start with the EXACT text the user already typed. \
+You are only appending to what they wrote. Output a single line. \
+No explanation, no markdown, no backticks, no quotes around the command."""
 
 NL_SYSTEM_PROMPT = """\
 Translate this description into a single shell command. \
@@ -145,6 +146,14 @@ def serve_terminal_session(context_file_path, option_file_path):
         completion = call_ollama(prompt)
         if not completion:
             return
+
+        # Completion must start with what the user typed for grep matching
+        if not completion.lower().startswith(current_prompt.lower()):
+            # Try to salvage: if model omitted the prefix, prepend it
+            if len(completion) > 0 and not completion[0].isspace():
+                completion = current_prompt + " " + completion
+            else:
+                return
 
         with open(option_file_path, "w") as file:
             file.write(completion)
