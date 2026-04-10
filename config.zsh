@@ -17,6 +17,8 @@ if [[ -f "$COPILOT_CONFIG_FILE" ]]; then
             NL_HOTKEY)            export NL_HOTKEY="$value" ;;
             CONTEXT_HISTORY_DEPTH) export CONTEXT_HISTORY_DEPTH="$value" ;;
             CONTEXT_DIR_LISTING)  export CONTEXT_DIR_LISTING="$value" ;;
+            CORRECTION_STYLE)     export CORRECTION_STYLE="$value" ;;
+            CORRECTION_ACCEPT_KEY) export CORRECTION_ACCEPT_KEY="$value" ;;
         esac
     done < "$COPILOT_CONFIG_FILE"
 fi
@@ -28,3 +30,5 @@ fi
 : ${NL_HOTKEY:=^K}
 : ${CONTEXT_HISTORY_DEPTH:=10}
 : ${CONTEXT_DIR_LISTING:=true}
+: ${CORRECTION_STYLE:=fg=yellow}
+: ${CORRECTION_ACCEPT_KEY:=^Y}

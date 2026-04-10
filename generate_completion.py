@@ -147,12 +147,13 @@ def serve_terminal_session(context_file_path, option_file_path):
         if not completion:
             return
 
-        # Completion must start with what the user typed for grep matching
-        if not completion.lower().startswith(current_prompt.lower()):
-            return
-
-        with open(option_file_path, "w") as file:
-            file.write(completion)
+        # Line 1: prefix-matching completion, Line 2: correction (non-matching)
+        if completion.lower().startswith(current_prompt.lower()):
+            with open(option_file_path, "w") as file:
+                file.write(completion + "\n")
+        else:
+            with open(option_file_path, "w") as file:
+                file.write("\n" + completion)
 
 
 def serve_nl_request(request_file_path, response_file_path):
