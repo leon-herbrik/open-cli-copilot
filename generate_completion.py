@@ -149,11 +149,7 @@ def serve_terminal_session(context_file_path, option_file_path):
 
         # Completion must start with what the user typed for grep matching
         if not completion.lower().startswith(current_prompt.lower()):
-            # Try to salvage: if model omitted the prefix, prepend it
-            if len(completion) > 0 and not completion[0].isspace():
-                completion = current_prompt + " " + completion
-            else:
-                return
+            return
 
         with open(option_file_path, "w") as file:
             file.write(completion)
