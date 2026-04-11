@@ -26,14 +26,16 @@ _copilot_show_correction_widget() {
         region_highlight=("${#BUFFER} $(( ${#BUFFER} + ${#POSTDISPLAY} )) ${CORRECTION_STYLE:-fg=yellow}")
     else
         POSTDISPLAY=""
+        region_highlight=()
     fi
     zle -R
 }
 zle -N _copilot_show_correction_widget
 
-# Widget: show completion as ghost text (original upstream approach)
+# Widget: show completion as grey ghost text
 _copilot_show_completion_widget() {
     POSTDISPLAY="${suggestion#$BUFFER}"
+    region_highlight=("${#BUFFER} $(( ${#BUFFER} + ${#POSTDISPLAY} )) ${ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE:-fg=8}")
     zle -R
 }
 zle -N _copilot_show_completion_widget
@@ -45,6 +47,7 @@ _copilot_accept_correction() {
         BUFFER="$_copilot_correction"
         CURSOR=${#BUFFER}
         POSTDISPLAY=""
+        region_highlight=()
         _copilot_correction=""
         # Clear options file so stale correction doesn't re-appear
         : > "$OPTIONS_FILE"
