@@ -35,12 +35,14 @@ SYSTEM_PROMPT = """\
 You are a shell command autocomplete engine. \
 Given a partial command after "Complete this:", output the full completed command. \
 CRITICAL: Your output MUST start with the EXACT text the user already typed. \
-You are only appending to what they wrote. Output a single line. \
-No explanation, no markdown, no backticks, no quotes around the command."""
+You are only appending to what they wrote. \
+Output ONLY the raw command. Never use backticks, code fences, markdown, or quotes. \
+Never explain. Single line only."""
 
 NL_SYSTEM_PROMPT = """\
 Translate this description into a single shell command. \
-Output only the command, no explanation, no markdown."""
+Output ONLY the raw command. Never use backticks, code fences, markdown, or quotes. \
+Never explain."""
 
 CONTEXT_HISTORY_DEPTH = int(os.environ.get(
     "CONTEXT_HISTORY_DEPTH", _config.get("CONTEXT_HISTORY_DEPTH", "10")
