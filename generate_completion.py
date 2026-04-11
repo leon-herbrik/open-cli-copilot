@@ -205,11 +205,9 @@ def handle_tmp_files(directory):
     # Handle NL-to-command requests
     for f in nl_request_files:
         request_path = os.path.join(directory, f.name)
+        # Response file has same name with .nl_request replaced by .nl_response
         response_name = f.name.replace(".nl_request", ".nl_response")
         response_path = os.path.join(directory, response_name)
-
-        if not os.path.exists(response_path):
-            continue
 
         try:
             serve_nl_request(request_path, response_path)

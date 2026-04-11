@@ -19,6 +19,7 @@ if [[ -f "$COPILOT_CONFIG_FILE" ]]; then
             CONTEXT_DIR_LISTING)  export CONTEXT_DIR_LISTING="$value" ;;
             CORRECTION_STYLE)     export CORRECTION_STYLE="$value" ;;
             CORRECTION_ACCEPT_KEY) export CORRECTION_ACCEPT_KEY="$value" ;;
+            NL_UNDO_KEY)          export NL_UNDO_KEY="$value" ;;
         esac
     done < "$COPILOT_CONFIG_FILE"
 fi
@@ -32,3 +33,4 @@ fi
 : ${CONTEXT_DIR_LISTING:=true}
 : ${CORRECTION_STYLE:=fg=yellow}
 : ${CORRECTION_ACCEPT_KEY:=^Y}
+: ${NL_UNDO_KEY:=^Z}
