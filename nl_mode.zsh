@@ -42,14 +42,23 @@ except: pass
 " 2>/dev/null)
 
     if [[ -n "$result" ]]; then
-        BUFFER="$result"
-        CURSOR=${#BUFFER}
-        POSTDISPLAY=""
-        region_highlight=()
-        _copilot_prev_buffer="$BUFFER"
-        zle -R
+        _copilot_nl_pending_result="$result"
+        zle _copilot_nl_apply
     fi
 }
+
+# Widget to apply NL result (BUFFER only available in widget context)
+_copilot_nl_apply() {
+    [[ -z "$_copilot_nl_pending_result" ]] && return
+    BUFFER="$_copilot_nl_pending_result"
+    CURSOR=${#BUFFER}
+    POSTDISPLAY=""
+    region_highlight=()
+    _copilot_prev_buffer="$BUFFER"
+    _copilot_nl_pending_result=""
+    zle -R
+}
+zle -N _copilot_nl_apply
 
 # Ctrl+K: translate natural language to command
 _copilot_nl_translate() {

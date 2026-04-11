@@ -81,7 +81,6 @@ _copilot_async_response() {
     _copilot_fd=""
     _copilot_child_pid=""
 
-    [[ -z "$raw" ]] && return
 
     local completion
     completion=$(printf '%s' "$raw" | command python3 -c "
@@ -92,24 +91,10 @@ try:
 except: pass
 " 2>/dev/null)
 
-    [[ -z "$completion" ]] && return
 
-    local buf="$BUFFER"
-    [[ -z "$buf" ]] && return
-
-    if [[ "${completion:l}" == "${buf:l}"* ]]; then
-        _copilot_suggestion="$completion"
-        _copilot_correction=""
-        POSTDISPLAY="${completion#$buf}"
-        region_highlight=("${#buf} $(( ${#buf} + ${#POSTDISPLAY} )) ${ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE:-fg=8}")
-    else
-        _copilot_suggestion=""
-        _copilot_correction="$completion"
-        POSTDISPLAY="  ${completion}"
-        region_highlight=("${#buf} $(( ${#buf} + ${#POSTDISPLAY} )) ${CORRECTION_STYLE:-fg=yellow}")
-    fi
-
-    zle -R
+    # Store completion — display widget will check BUFFER (not available in zle -F callbacks)
+    _copilot_pending_completion="$completion"
+    zle _copilot_display
 }
 
 # Fire debounced async request to Ollama
@@ -124,7 +109,7 @@ _copilot_fetch() {
     local escaped_system=$(_copilot_json_escape "$_COPILOT_SYSTEM_PROMPT")
     local url="${OLLAMA_URL:-http://localhost:11434}"
     local model="${OLLAMA_MODEL:-cli-copilot}"
-    local -F debounce=$(( ${INLINE_TIMEOUT_MS:-300} / 1000.0 ))
+    local -F debounce=$(( ${INLINE_TIMEOUT_MS:-0} / 1000.0 ))
 
     exec {_copilot_fd}< <(
         sleep $debounce
@@ -149,10 +134,34 @@ _copilot_on_modify() {
         return
     fi
 
-    (( ${KEYS_QUEUED_COUNT:-0} > 0 )) && return
 
     _copilot_fetch
 }
+
+# Widget to update display (called from async callback via zle)
+# BUFFER is only available here, not in zle -F callbacks
+_copilot_display() {
+    local completion="$_copilot_pending_completion"
+    local buf="$BUFFER"
+    _copilot_pending_completion=""
+
+    [[ -z "$completion" || -z "$buf" ]] && return
+
+    if [[ "${completion:l}" == "${buf:l}"* ]]; then
+        _copilot_suggestion="$completion"
+        _copilot_correction=""
+        POSTDISPLAY="${completion#$buf}"
+        region_highlight=("${#buf} $(( ${#buf} + ${#POSTDISPLAY} )) ${ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE:-fg=8}")
+    else
+        _copilot_suggestion=""
+        _copilot_correction="$completion"
+        POSTDISPLAY="  ${completion}"
+        region_highlight=("${#buf} $(( ${#buf} + ${#POSTDISPLAY} )) ${CORRECTION_STYLE:-fg=yellow}")
+    fi
+
+    zle -R
+}
+zle -N _copilot_display
 
 # Accept correction: replace buffer entirely
 _copilot_accept_correction() {
