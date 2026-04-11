@@ -28,7 +28,7 @@ def load_config():
 
 _config = load_config()
 OLLAMA_URL = os.environ.get("OLLAMA_URL", _config.get("OLLAMA_URL", "http://localhost:11434"))
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", _config.get("OLLAMA_MODEL", "qwen3.5:4b"))
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", _config.get("OLLAMA_MODEL", "qwen2.5-coder:1.5b"))
 MIN_IDLE_TIME = int(os.environ.get("INLINE_TIMEOUT_MS", _config.get("INLINE_TIMEOUT_MS", "300"))) / 1000
 
 SYSTEM_PROMPT = """\
@@ -96,8 +96,7 @@ def call_ollama(prompt, system=None, max_tokens=50):
         "system": system or SYSTEM_PROMPT,
         "prompt": prompt,
         "stream": True,
-        "think": False,
-        "keep_alive": -1,
+        "keep_alive": "30s",
         "options": {
             "num_predict": max_tokens,
             "stop": ["\n"],
