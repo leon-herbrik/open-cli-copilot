@@ -26,7 +26,7 @@ fi
 
 # Defaults
 : ${OLLAMA_URL:=http://localhost:11434}
-: ${OLLAMA_MODEL:=cli-copilot}
+: ${OLLAMA_MODEL:=qwen3.5:2b}
 : ${INLINE_TIMEOUT_MS:=300}
 : ${NL_HOTKEY:=^K}
 : ${CONTEXT_HISTORY_DEPTH:=10}

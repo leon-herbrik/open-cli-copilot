@@ -114,7 +114,7 @@ _copilot_fetch() {
     exec {_copilot_fd}< <(
         sleep $debounce
         curl -s --connect-timeout 5 "${url}/api/generate" \
-            -d "{\"model\":\"${model}\",\"system\":\"${escaped_system}\",\"prompt\":\"${escaped_prompt}\",\"stream\":false,\"keep_alive\":\"30s\",\"options\":{\"num_predict\":50,\"stop\":[\"\\n\"],\"temperature\":0.0,\"num_ctx\":2048}}" \
+            -d "{\"model\":\"${model}\",\"system\":\"${escaped_system}\",\"prompt\":\"${escaped_prompt}\",\"stream\":false,\"think\":false,\"keep_alive\":\"30s\",\"options\":{\"num_predict\":50,\"stop\":[\"\\n\"],\"temperature\":0.0,\"num_ctx\":2048}}" \
             2>/dev/null
     )
     _copilot_child_pid=$!

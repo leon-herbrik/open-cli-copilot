@@ -76,7 +76,7 @@ _copilot_nl_translate() {
 
     exec {_copilot_nl_fd}< <(
         curl -s --connect-timeout 5 "${url}/api/generate" \
-            -d "{\"model\":\"${model}\",\"system\":\"${escaped_sys}\",\"prompt\":\"${escaped}\",\"stream\":false,\"keep_alive\":\"30s\",\"options\":{\"num_predict\":200,\"stop\":[\"\\n\"],\"temperature\":0.0,\"num_ctx\":2048}}" \
+            -d "{\"model\":\"${model}\",\"system\":\"${escaped_sys}\",\"prompt\":\"${escaped}\",\"stream\":false,\"think\":false,\"keep_alive\":\"30s\",\"options\":{\"num_predict\":200,\"stop\":[\"\\n\"],\"temperature\":0.0,\"num_ctx\":2048}}" \
             2>/dev/null
     )
     _copilot_nl_child_pid=$!
